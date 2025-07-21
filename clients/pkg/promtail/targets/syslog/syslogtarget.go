@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/leodido/go-syslog/v4"
+	"github.com/leodido/go-syslog/v4/common"
 	"github.com/leodido/go-syslog/v4/rfc3164"
 	"github.com/leodido/go-syslog/v4/rfc5424"
 	"github.com/prometheus/common/model"
@@ -171,6 +173,36 @@ func (t *SyslogTarget) handleMessageRFC5424(connLabels labels.Labels, msg syslog
 		fullMsg, err := rfc5424Msg.String()
 		if err != nil {
 			level.Debug(t.logger).Log("msg", "failed to convert rfc5424 message to string; using message field instead", "err", err)
+		} else if t.config.StripRFC5424MessageHeader {
+			m = ""
+			if rfc5424Msg.StructuredData != nil {
+				// Sort element identifiers
+				identifiers := make([]string, 0)
+				for k, _ := range *rfc5424Msg.StructuredData {
+					identifiers = append(identifiers, k)
+				}
+				sort.Strings(identifiers)
+
+				for _, id := range identifiers {
+					m += fmt.Sprintf("[%s", id)
+
+					// Sort parameter names
+					params := (*rfc5424Msg.StructuredData)[id]
+					names := make([]string, 0)
+					for n, _ := range params {
+						names = append(names, n)
+					}
+					sort.Strings(names)
+
+					for _, name := range names {
+						m += fmt.Sprintf(" %s=\"%s\"", name, common.EscapeBytes(params[name]))
+					}
+					m += "]"
+				}
+			}
+			if rfc5424Msg.Message != nil {
+				m += " " + *rfc5424Msg.Message
+			}
 		} else {
 			m = fullMsg
 		}

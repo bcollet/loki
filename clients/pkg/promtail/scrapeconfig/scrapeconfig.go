@@ -211,6 +211,10 @@ type SyslogTargetConfig struct {
 	// message should be pushed to Loki
 	UseRFC5424Message bool `yaml:"use_rfc5424_message"`
 
+	// Strip HEADER from the full RFC5424 formatted syslog message pushed to Loki
+	// when UseRFC5424Message is set to `true`.
+	StripRFC5424MessageHeader bool `yaml:"strip_rfc5424_message_header"`
+
 	// Syslog format used at the target. Acceptable value is rfc5424 or rfc3164.
 	// Default is rfc5424.
 	SyslogFormat SyslogFormat `yaml:"syslog_format"`
