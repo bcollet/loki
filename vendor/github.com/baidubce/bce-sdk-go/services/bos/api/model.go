@@ -101,14 +101,14 @@ type GranteeType struct {
 }
 
 type AclRefererType struct {
-	StringLike   []string `json:"stringLike"`
-	StringEquals []string `json:"stringEquals"`
+	StringLike   []string `json:"stringLike,omitempty"`
+	StringEquals []string `json:"stringEquals,omitempty"`
 }
 
 type AclCondType struct {
-	IpAddress []string       `json:"ipAddress"`
-	Referer   AclRefererType `json:"referer"`
-	VpcId     []string       `json:"vpcId"`
+	IpAddress []string       `json:"ipAddress,omitempty"`
+	Referer   AclRefererType `json:"referer,omitempty"`
+	VpcId     []string       `json:"vpcId,omitempty"`
 }
 
 // GrantType defines the grant struct in ACL setting
@@ -264,6 +264,13 @@ type ObjectAclType struct {
 type PutObjectAclArgs ObjectAclType
 type GetObjectAclResult ObjectAclType
 
+type SSEHeaders struct {
+	SSECKey              string
+	SSECKeyMD5           string
+	SSEKmsKeyId          string
+	ServerSideEncryption string
+}
+
 // PutObjectArgs defines the optional args structure for the put object api.
 type PutObjectArgs struct {
 	CacheControl       string
@@ -277,12 +284,16 @@ type PutObjectArgs struct {
 	ContentCrc32       string
 	StorageClass       string
 	Process            string
-	CannedAcl          string
 	ObjectTagging      string
 	TrafficLimit       int64
 	ContentCrc32c      string
 	ContentCrc32cFlag  bool
 	ObjectExpires      int
+	ContentEncoding    string
+	ForbidOverwrite    bool
+	Encryption         SSEHeaders
+	// please set other header/params of http request By Option
+	// alternative Options please refer to service/bos/api/option.go
 }
 
 // CopyObjectArgs defines the optional args structure for the copy object api.
@@ -294,18 +305,27 @@ type CopyObjectArgs struct {
 	IfModifiedSince   string
 	IfUnmodifiedSince string
 	TrafficLimit      int64
-	CannedAcl         string
 	TaggingDirective  string
 	ObjectTagging     string
 	ContentCrc32c     string
 	ContentCrc32cFlag bool
 	ObjectExpires     int
+	// please set other header/params of http request By Option
+	// alternative Options please refer to service/bos/api/option.go
 }
 
 type MultiCopyObjectArgs struct {
-	StorageClass     string
-	ObjectTagging    string
-	TaggingDirective string
+	StorageClass      string
+	ObjectTagging     string
+	TaggingDirective  string
+	ContentCrc32      string
+	ContentCrc32c     string
+	ContentCrc32cFlag bool
+	CannedAcl         string
+	GrantRead         []string
+	GrantFullControl  []string
+	ObjectExpires     int
+	UserMeta          map[string]string
 }
 
 type CallbackResult struct {
@@ -313,9 +333,12 @@ type CallbackResult struct {
 }
 
 type PutObjectResult struct {
-	Callback      CallbackResult `json:"callback"`
-	ContentCrc32  string         `json:"-"`
-	ContentCrc32c string         `json:"-"`
+	Callback             CallbackResult `json:"callback"`
+	ContentCrc32         string         `json:"-"`
+	ContentCrc32c        string         `json:"-"`
+	StorageClass         string         `json:"-"`
+	VersionId            string         `json:"-"`
+	ServerSideEncryption string         `json:"-"`
 }
 
 // CopyObjectResult defines the result json structure for the copy object api.
@@ -347,6 +370,9 @@ type ObjectMeta struct {
 	VersionId          string
 	ContentCrc32c      string
 	ExpirationDate     string
+	Encryption         SSEHeaders
+	RetentionDate      string
+	objectTagCount     int64
 }
 
 // GetObjectResult defines the result data of the get object api.
@@ -423,6 +449,8 @@ type FetchObjectArgs struct {
 	FetchMode            string
 	StorageClass         string
 	FetchCallBackAddress string
+	ObjectExpires        int
+	ContentEncoding      string
 }
 
 // FetchObjectResult defines the result json structure for the fetch object api.
@@ -448,6 +476,8 @@ type AppendObjectArgs struct {
 	TrafficLimit       int64
 	ContentCrc32c      string
 	ContentCrc32cFlag  bool
+	ObjectExpires      int
+	ContentEncoding    string
 }
 
 // AppendObjectResult defines the result data structure for appending object.
@@ -490,6 +520,11 @@ type InitiateMultipartUploadArgs struct {
 	ObjectTagging      string
 	TaggingDirective   string
 	CannedAcl          string
+	CopySource         string
+	GrantRead          []string
+	GrantFullControl   []string
+	ObjectExpires      int
+	ContentEncoding    string
 }
 
 // InitiateMultipartUploadResult defines the result structure to initiate a multipart upload.
@@ -542,6 +577,7 @@ type CompleteMultipartUploadArgs struct {
 	ContentCrc32      string            `json:"-"`
 	ContentCrc32c     string            `json:"-"`
 	ContentCrc32cFlag bool              `json:"-"`
+	ObjectExpires     int               `json:"-"`
 }
 
 // CompleteMultipartUploadResult defines the result structure of CompleteMultipartUpload.
@@ -552,6 +588,7 @@ type CompleteMultipartUploadResult struct {
 	ETag          string `json:"eTag"`
 	ContentCrc32  string `json:"-"`
 	ContentCrc32c string `json:"-"`
+	VersionId     string `json:"-"`
 }
 
 // ListPartsArgs defines the input optional arguments of listing parts information.
@@ -722,4 +759,28 @@ type BosShareResBody struct {
 
 type BucketVersioningArgs struct {
 	Status string `json:"status"`
+}
+
+type InventoryDestination struct {
+	TargetBucket string `json:"targetBucket"`
+	TargetPrefix string `json:"targetPrefix,omitempty"`
+	Format       string `json:"format"`
+}
+
+type BucketInventoryRule struct {
+	Id                string               `json:"id"`
+	Status            string               `json:"status"`
+	Resource          []string             `json:"resource"`
+	Schedule          string               `json:"schedule"`
+	Destination       InventoryDestination `json:"destination"`
+	MonthlyDate       int                  `json:"monthlyDate,omitempty"`
+	IncObjectVersions string               `json:"includedObjectVersions,omitempty"`
+}
+
+type PutBucketInventoryArgs struct {
+	Rule BucketInventoryRule
+}
+
+type ListBucketInventoryResult struct {
+	RuleList []BucketInventoryRule `json:"inventoryRuleList"`
 }
